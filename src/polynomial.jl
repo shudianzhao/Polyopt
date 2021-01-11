@@ -1,5 +1,3 @@
-
-
 import Base: show, *, -, +, isless, ==, convert, conj, truncate, zero, one, promote_rule, transpose, adjoint, sub, round
 import LinearAlgebra: dot, mul!
 
@@ -22,8 +20,8 @@ struct Poly{T<:Number}
     function Poly{T}(syms::Symbols, alpha::Array{Int,2}, c::Array{T,1}) where {T<:Number}
         m, n = size(alpha)
         if length(c) != m error("incompatible dimensions") end
-        
-        deg = size(alpha, 1) > 0 ? maximum(sum(alpha,dims=2)) : 0        
+
+        deg = size(alpha, 1) > 0 ? maximum(sum(alpha,dims=2)) : 0
         new{T}(n, m, syms, c, alpha, deg)
     end
 
@@ -137,8 +135,8 @@ function ^(p::Poly{T}, a::Int) where {T<:Number}
     if p.m == 1 return Poly{T}(p.syms, p.alpha*a, p.c.^a) end
 
     powers = Array{Poly{T},1}(undef, Int(1+ceil(log2(a))))
-    
-    @inbounds begin    
+
+    @inbounds begin
     powers[1] = p
     k = 1
     while 2^k<=a
@@ -153,9 +151,9 @@ function ^(p::Poly{T}, a::Int) where {T<:Number}
         if (b + 2^(k-1) <= a)
             b += 2^(k-1)
             r = r*powers[k]
-        end            
+        end
     end
-    
+
     end
     r
 end
@@ -167,13 +165,13 @@ const MatOrVec{T} = Union{Array{T,1},Array{T,2}}
 *(a::Poly{T}, v::MatOrVec{Poly{S}}) where {S<:Number,T<:Number} = reshape(Poly{promote_type(T,S)}[ a*vi for vi=v ], size(v))
 *(v::MatOrVec{Poly{S}}, a::Poly{T}) where {S<:Number,T<:Number} = reshape(Poly{promote_type(T,S)}[ a*vi for vi=v ], size(v))
 
-function ==(p1::Poly{S}, p2::Poly{T}) where {S<:Number,T<:Number} 
+function ==(p1::Poly{S}, p2::Poly{T}) where {S<:Number,T<:Number}
     r = p1-p2
     r.m == 0 || r.n == 0
 end
 
-==(p::Poly{S}, c::T) where {S<:Number,T<:Number} = p == Poly{T}(c) 
-==(c::S, p::Poly{T}) where {S<:Number,T<:Number} = p == Poly{S}(c) 
+==(p::Poly{S}, c::T) where {S<:Number,T<:Number} = p == Poly{T}(c)
+==(c::S, p::Poly{T}) where {S<:Number,T<:Number} = p == Poly{S}(c)
 
 conj(p::Poly{T}) where {T<:Number} = Poly{T}(p.syms, p.alpha, conj(p.c))
 convert(::Type{Poly{T}}, a::T) where {T<:Number} = Poly{T}(convert(T,a))
@@ -206,7 +204,7 @@ adjoint(p::Poly{T}) where {T<:Number} = p
 # promote polynomial to share the same Symbol basis
 function promote_poly(p1::Poly{S}, p2::Poly{T}) where {S<:Number,T<:Number}
     if (p1.syms == p2.syms) || (isconst(p1) && isconst(p2)) return (p1, p2) end
-    
+
     if isconst(p1)  && ~isconst(p2)
         return (Poly{S}(p2.syms, zeros(Int, p1.m, p2.n), p1.c), p2)
     elseif ~isconst(p1) && isconst(p2)
@@ -231,27 +229,27 @@ function simplify(p::Poly{T}) where {T<:Number}
     if p.m == 1 && p.c[1] == zero(T)
         return Poly{T}(p.syms, Array{Int,2}(undef, 0, p.n), Array{T,1}(undef, 0))
     end
-    
-    if p.m <= 1 
+
+    if p.m <= 1
         return p
     end
-    
+
     #y = ordermap(p)
     #perm = sortperm(y)
-    
+
     c = 1:p.n
     rows = [ view(p.alpha,i,c) for i=1:p.m ]
     perm = sortperm(rows)
     y = p.alpha*rand(p.n)
-            
+
     first = Array{Int,1}(undef, p.m)
     c = Array{T,1}(undef, p.m)
-    
+
     l = 1
     @inbounds begin
     first[l] = 1
     c[l] = p.c[perm[1]]
-    
+
     for k=2:p.m
         if y[perm[k]] == y[perm[first[l]]]
             c[l] += p.c[perm[k]]
@@ -262,8 +260,8 @@ function simplify(p::Poly{T}) where {T<:Number}
         end
     end
 
-    I = view(c,1:l) .!= 0    
-    y = Poly{T}(p.syms, p.alpha[perm[view(first,1:l)[I]],:], view(c,1:l)[I])    
+    I = view(c,1:l) .!= 0
+    y = Poly{T}(p.syms, p.alpha[perm[view(first,1:l)[I]],:], view(c,1:l)[I])
     end
     y
 end
@@ -271,7 +269,7 @@ end
 function truncate(p::Poly{T}, threshold=1e-10) where {T<:Number}
     lgt = 0
     labeled = falses(p.m)
-    
+
     for k=1:p.m
         if abs(p.c[k]) < threshold
             labeled[k] = true
@@ -314,25 +312,25 @@ function isless(p1::Poly{T}, p2::Poly{T}) where {T<:Number}
 end
 
 # function ordermap{T<:Number}(p::Poly{T})
-# 
+#
 #     @inbounds begin
-# 
+#
 #     r = zeros(Float64, p.n)
 #     r[p.n] = 1
 #     t = p.deg
-#     
+#
 #     for l=p.n-1:-1:1
 #         r[l] = t+1
-#         t += p.deg*r[l] 
+#         t += p.deg*r[l]
 #     end
-#      
+#
 #     end
-#     
-#     p.alpha*r    
+#
+#     p.alpha*r
 # end
 
-# function order{T<:Number}(p::Poly{T})    
-#     perm = sortperm(ordermap(p))    
+# function order{T<:Number}(p::Poly{T})
+#     perm = sortperm(ordermap(p))
 #     Poly{T}(p.syms, p.alpha[perm,:], p.c[perm])
 # end
 

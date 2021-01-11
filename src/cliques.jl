@@ -3,6 +3,7 @@ using SuiteSparse.CHOLMOD
 using LinearAlgebra
 
 
+
 function find_replacement(v)
     [x for (x,y) in filter((y->(y[2] != 0)), Tuple(enumerate(v)))]
 end
@@ -43,7 +44,7 @@ end
 function round_array(T, A::SparseMatrixCSC{Tv,Ti}) where {Tv<:Number,Ti<:Int}
     if T <: Integer
         convert(SparseMatrixCSC{T,Ti},map(x->Base.round(T,x),A))
-    else 
+    else
         convert(SparseMatrixCSC{T,Ti},map(x->Base.round(x),A))
     end
 end
@@ -51,12 +52,14 @@ end
 function chordal_embedding(A::SparseMatrixCSC{Tv,Ti}, Perm::Vector{Ti}) where {Tv<:Number,Ti<:Int}
     m, n = size(A)
     S = CHOLMOD.Sparse(round_array(Float64,A))
-    
-    F = cholesky(round_array(Float64,A), shift=n, perm=Perm)    
+
+    F = cholesky(round_array(Float64,A), shift=n, perm=Perm)
     s = F.p
+
     p = [ round(Int64,s[i]) for i=1:length(s)]
 
     par, post, colcount = chm_analyze_ordering(S, s.ordering, p)
+
     ns, flag = pothen_sun(par+1, post+1, colcount)
 
     # extract cliques
@@ -71,10 +74,10 @@ function clique_index(I::Array{Array{Int,1},1}, S::Array{Int,1}, n::Int)
 
     J = Int[]
     mask = zeros(Int, n)
-    s = sparsevec(S, 1, n)    
+    s = sparsevec(S, 1, n)
     for k=1:length(I)
-        if length(S) <= length(I[k]) 
-            mask[I[k]] .= 1    
+        if length(S) <= length(I[k])
+            mask[I[k]] .= 1
             if dot(mask, s) == length(S)
                 push!(J, k)
             end
